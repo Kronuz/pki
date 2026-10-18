@@ -49,8 +49,8 @@ std::string_view name(Standing standing) noexcept {
 
 std::int64_t parse_duration(std::string_view text) {
 	auto refuse = [&]() -> std::int64_t {
-		throw Refusal(Reason::duration, "cannot read the duration \"" + std::string(text) +
-			"\"; give a count and a unit, s, m, h, or d, such as 30d");
+		throw Refusal(Reason::duration, "cannot read the duration " + quoted(text) +
+			"; give a count and a unit, s, m, h, or d, such as 30d");
 	};
 	if (text.size() < 2) { return refuse(); }
 	std::int64_t unit = 0;
@@ -66,7 +66,7 @@ std::int64_t parse_duration(std::string_view text) {
 		if (c < '0' || c > '9') { return refuse(); }
 		count = count * 10 + (c - '0');
 		if (count > latest_time / unit) {
-			throw Refusal(Reason::duration, "the duration \"" + std::string(text) + "\" runs past 9999-12-31, the latest time X.509 encodes");
+			throw Refusal(Reason::duration, "the duration " + quoted(text) + " runs past 9999-12-31, the latest time X.509 encodes");
 		}
 	}
 	return count * unit;

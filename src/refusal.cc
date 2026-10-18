@@ -38,6 +38,23 @@ std::string_view name(Reason reason) noexcept {
 	return "unknown";
 }
 
+std::string quoted(std::string_view text) {
+	static constexpr char digits[] = "0123456789abcdef";
+	std::string out = "\"";
+	for (char c : text) {
+		auto byte = static_cast<unsigned char>(c);
+		if (byte < 0x20 || byte >= 0x7f || c == '"' || c == '\\') {
+			out += "\\x";
+			out += digits[byte >> 4];
+			out += digits[byte & 0xF];
+		} else {
+			out += c;
+		}
+	}
+	out += '"';
+	return out;
+}
+
 void crypto_failure(const std::string& what) {
 	std::string message = what;
 	char buffer[256];

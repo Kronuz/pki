@@ -120,7 +120,7 @@ int dispatch(Context& context, const std::string& command) {
 		usage(context.out, context.program, context.consumer);
 		return exit_ok;
 	}
-	refuse_usage("unknown command \"" + command + "\"; run `" + context.program + " help`");
+	refuse_usage("unknown command " + quoted(command) + "; run `" + context.program + " help`");
 }
 
 }  // namespace
@@ -138,7 +138,7 @@ int run(Consumer consumer, const std::vector<std::string>& args, std::ostream& o
 			} else if (value == "detent") {
 				consumer = Consumer::detent;
 			} else {
-				refuse_usage("--consumer takes xapiand or detent, not \"" + value + "\"");
+				refuse_usage("--consumer takes xapiand or detent, not " + quoted(value));
 			}
 			i += 2;
 		}

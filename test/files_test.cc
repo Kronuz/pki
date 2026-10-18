@@ -42,10 +42,13 @@ void policies(const std::string& dir) {
 	fixture::write_file(file, "k", 0660);
 	CHECK_REFUSED(Reason::file_mode, read_as(file, Policy::secret));
 
-	// key: node keys, 0640 only with the caller's own group (SYS-13).
+	// key: node keys, 0640 only with the caller's own group (SYS-13). BSDs give a new file
+	// its directory's group, so the own-group cases set the effective group first.
 	fixture::write_file(file, "k", 0640);
+	CHECK(::chown(file.c_str(), static_cast<uid_t>(-1), ::getegid()) == 0);
 	CHECK_ACCEPTED(read_as(file, Policy::key));
 	fixture::write_file(file, "k", 0440);
+	CHECK(::chown(file.c_str(), static_cast<uid_t>(-1), ::getegid()) == 0);
 	CHECK_ACCEPTED(read_as(file, Policy::key));
 	fixture::write_file(file, "k", 0600);
 	CHECK_ACCEPTED(read_as(file, Policy::key));

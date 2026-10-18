@@ -26,7 +26,7 @@ message(STATUS "pki: OpenSSL ${OPENSSL_VERSION} at ${OPENSSL_INCLUDE_DIR}")
 # objects (Xapiand, with its trace and fault seams) sets PKI_LINK_IO=OFF, so pki adds
 # io's headers and no second copy of its symbols.
 option(PKI_LINK_IO "Link io::io (OFF when the consumer compiles io.cc itself)" ON)
-if(NOT TARGET io::io AND NOT DEFINED io_SOURCE_DIR)
+if(NOT TARGET io::io)
 	FetchContent_Declare(io GIT_REPOSITORY https://github.com/Kronuz/io.git GIT_TAG 1336f85d00616187c633d372548aab3e4b843426)
 	FetchContent_MakeAvailable(io)
 endif()

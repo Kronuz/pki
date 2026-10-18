@@ -50,6 +50,10 @@ private:
 	Reason reason_;
 };
 
+// TEXT in double quotes for a message, every byte outside printable ASCII as \xHH, so a
+// refusal never carries a NUL or a terminal escape.
+std::string quoted(std::string_view text);
+
 // Throws Reason::crypto with OpenSSL's queued errors appended, and clears the queue.
 [[noreturn]] void crypto_failure(const std::string& what);
 

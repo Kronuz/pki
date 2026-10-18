@@ -93,6 +93,7 @@ void durations() {
 	for (const char* bad : {"", "d", "30", "30x", "-1d", "1.5d", "30D", " 30d", "30d ", "d30"}) {
 		CHECK(contains(CHECK_REFUSED(Reason::duration, pki::parse_duration(bad)), "a count and a unit"));
 	}
+	CHECK(contains(CHECK_REFUSED(Reason::duration, pki::parse_duration("3\x1b[0md")), "\"3\\x1b[0md\""));
 	CHECK(pki::parse_duration("2932896d") == 2932896 * day);
 	CHECK(contains(CHECK_REFUSED(Reason::duration, pki::parse_duration("2932897d")), "9999-12-31"));
 	CHECK_REFUSED(Reason::duration, pki::parse_duration("99999999999999999999999s"));
