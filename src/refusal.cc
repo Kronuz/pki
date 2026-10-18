@@ -33,6 +33,8 @@ std::string_view name(Reason reason) noexcept {
 		case Reason::key_unreadable: return "key-unreadable";
 		case Reason::pem: return "pem";
 		case Reason::duration: return "duration";
+		case Reason::identity_cluster: return "identity-cluster";
+		case Reason::identity_name: return "identity-name";
 		case Reason::crypto: return "crypto";
 	}
 	return "unknown";

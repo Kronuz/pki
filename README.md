@@ -28,10 +28,13 @@ Step 1 of 5 of the design. In this repository today:
 - **The authority directory's checks:** opened once and reached through `openat`; owned by
   the caller at 0700, on a local filesystem with POSIX modes, never under a Xapiand data
   root; key and passphrase files regular, singly linked, the caller's, and private.
+- **Identities:** SPIFFE IDs, `spiffe://<cluster>/<consumer>/<node | client>/<name>`, with
+  one byte form: the cluster and a node name lowercased per byte and held to SPIFFE's
+  alphabet, a voter id in canonical decimal, and nothing percent-encoded.
 - **Secrets:** no core dumps, passphrases from the terminal or a checked file (never argv
   or the environment), locked and wiped buffers.
 
-Still to come, in order: the index, the certificate profile, and signing; rotation,
+Still to come, in order: the index, the rest of the certificate profile, and signing; rotation,
 backup, and recovery; Xapiand's `xapiand pki`; Detent's adoption.
 
 ## 🚀 Usage

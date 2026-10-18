@@ -35,6 +35,8 @@ enum class Reason {
 	key_unreadable,      // no private key in the file
 	pem,                 // no PEM object pki reads, or a damaged one
 	duration,            // a duration pki does not parse
+	identity_cluster,    // a cluster name outside the trust domain's alphabet
+	identity_name,       // a node name or voter id outside D5's rules
 	crypto,              // an OpenSSL call failed
 };
 

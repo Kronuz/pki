@@ -87,6 +87,18 @@ expiring past five sixths of its life (61 days before the end of a 365-day leaf)
 a span the caller gives. Durations are a count and a unit (`30d`), capped at
 9999-12-31T23:59:59Z, the latest time X.509 encodes.
 
+## Identities
+
+`identity()` builds `spiffe://<trust domain>/<consumer>/<node | client>/<name>`: `node`
+for server and peer leaves, `client` for client leaves, so a client leaf never names a
+node. The trust domain is the cluster name lowercased per byte through
+`chars::tolower`, 1 to 255 bytes of `[a-z0-9._-]` (SPIFFE's trust-domain rules). A
+Xapiand name is lowercased the same way, as Xapiand compares node names, and held to 1 to
+511 bytes of the same alphabet, neither `.` nor `..`; SPIFFE paths allow uppercase, so
+the lowercasing is Xapiand's rule, not SPIFFE's. A Detent voter id is its decimal, 1 to
+2^64 - 1, without leading zeros. Nothing is percent-encoded, so an identity has one byte
+form, at most 791 bytes, and `same_identity` compares bytes.
+
 ## Seams
 
 - `PKI_LINK_IO` (ON): link `io::io`. A consumer that compiles `io.cc` into its own objects

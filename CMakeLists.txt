@@ -31,11 +31,18 @@ if(NOT TARGET io::io)
 	FetchContent_MakeAvailable(io)
 endif()
 
+# char-classify: chars::tolower, the table Xapiand's node names lowercase through.
+if(NOT TARGET char_classify::char_classify)
+	FetchContent_Declare(char_classify GIT_REPOSITORY https://github.com/Kronuz/char-classify.git GIT_TAG 306ecd96d55d47d9bd3167eaeb7877e40d0631ac)
+	FetchContent_MakeAvailable(char_classify)
+endif()
+
 set(PKI_SOURCES
 	src/command.cc
 	src/directory.cc
 	src/expiry.cc
 	src/fingerprint.cc
+	src/identity.cc
 	src/key.cc
 	src/pem.cc
 	src/refusal.cc
@@ -49,7 +56,7 @@ function(pki_add_library name)
 	target_include_directories(${name} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 	target_compile_features(${name} PUBLIC cxx_std_20)
 	target_compile_definitions(${name} PRIVATE PKI_VERSION="${PROJECT_VERSION}")
-	target_link_libraries(${name} PUBLIC OpenSSL::Crypto)
+	target_link_libraries(${name} PUBLIC OpenSSL::Crypto PRIVATE char_classify::char_classify)
 	if(PKI_LINK_IO)
 		target_link_libraries(${name} PUBLIC io::io)
 	else()
@@ -78,7 +85,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	find_program(PKI_TEST_OPENSSL openssl HINTS "${PKI_OPENSSL_PREFIX}/bin" NO_DEFAULT_PATH)
 	find_program(PKI_TEST_OPENSSL openssl REQUIRED)
 
-	foreach(t files key fingerprint expiry command)
+	foreach(t files key fingerprint expiry identity command)
 		add_executable(pki_${t}_test test/${t}_test.cc test/fixture.cc)
 		target_link_libraries(pki_${t}_test PRIVATE pki_testing)
 		target_compile_definitions(pki_${t}_test PRIVATE PKI_TEST_OPENSSL="${PKI_TEST_OPENSSL}")

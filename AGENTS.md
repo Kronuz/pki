@@ -14,13 +14,14 @@ include/pki/directory.h      The authority directory: open once, openat, create,
 include/pki/secret.h         Secret buffers, process hardening, passphrase intake
 include/pki/key.h            Key types, generation, PKCS#8 under scrypt, OSSL_STORE loading
 include/pki/fingerprint.h    SPKI and DER SHA-256 digests
+include/pki/identity.h       SPIFFE identities: trust domain, node name or voter id, role path
 include/pki/expiry.h         Validity, standing, durations, the clock
 include/pki/pem.h            Public PEM files: certificates, requests, public keys
 include/pki/openssl.h        unique_ptr handles for OpenSSL objects
 src/*.cc                     One per header above (command.cc for pki.h)
 examples/kronuz_pki.cc       kronuz-pki: the driver and example
 test/fixture.{h,cc}          CHECK macros, scratch directories, fixture CAs and leaves, the openssl CLI
-test/*_test.cc               files, key, fingerprint, expiry, command
+test/*_test.cc               files, key, fingerprint, expiry, identity, command
 cmake/no_test_hooks.cmake    Fails if the release driver names a test hook
 ```
 
@@ -55,6 +56,12 @@ Linux build tree on tmpfs fails `pki_files`.
   buffer and `openssl pkcs8`'s), a key file's 16 KiB (the largest accepted key several
   times over), a PEM object's 64 KiB (reactor::tls's certificate-list cap), a duration's
   9999-12-31 (the latest X.509 time).
+- **An identity has one byte form.** Lowercase per byte (`chars::tolower`), refuse what
+  falls outside the alphabet, never percent-encode, and compare bytes. The lowercasing
+  is Xapiand's rule (its node names compare case-blind); do not "correct" the alphabet
+  toward SPIFFE's mixed-case paths, which would give one node two identities.
+- **Refusals quote what they repeat** (`pki::quoted`): no NUL or terminal escape reaches
+  a message.
 - **Test hooks never reach a release build.** `PKI_TEST_NOW` is read only under
   `PKI_TEST_HOOKS`, which only `pki_testing` defines.
 
