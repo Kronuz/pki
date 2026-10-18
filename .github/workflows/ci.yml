@@ -1,0 +1,52 @@
+name: CI
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * *'  # nightly: drift in OpenSSL and in libraries tracked at main
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ci:
+    uses: Kronuz/cpp-libraries/.github/workflows/cmake.yml@main
+
+  # T9: macOS against Homebrew's openssl@4 as well as openssl@3.
+  openssl4:
+    name: macos-arm64-openssl4
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Packages
+        run: brew install openssl@4
+      - name: Configure
+        run: >-
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
+          "-DOPENSSL_ROOT_DIR=$(brew --prefix openssl@4)"
+      - name: Build
+        run: cmake --build build --parallel 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --parallel 2
+
+  # T4's owner cases: a key and a directory owned by another user, checked as root.
+  owner:
+    name: owner-cases-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g"
+      - name: Build
+        run: cmake --build build --parallel 4 --target pki_files_test
+      - name: Test as root
+        working-directory: build
+        run: sudo ./pki_files_test
