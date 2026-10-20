@@ -1,6 +1,6 @@
 // The authority directory's checks (D3; SR7, PKI-R12, PKI-R22): DIR is opened once and
 // every file is reached through openat on it; files are written exclusively, at their
-// mode whatever the umask, and synced with io::full_fsync.
+// mode whatever the umask, and synced with io::full_fsync, the directory after the file.
 #pragma once
 
 #include <sys/types.h>
@@ -37,7 +37,7 @@ public:
 	Secret read(const char* name, private_file::Policy policy, std::size_t cap) const;
 
 	// Creates NAME with O_CREAT | O_EXCL | O_NOFOLLOW, sets MODE whatever the umask, writes
-	// BYTES, and syncs them. Never replaces a file.
+	// BYTES, and syncs the file, then the directory entry. Never replaces a file.
 	void create(const char* name, std::span<const unsigned char> bytes, mode_t mode) const;
 
 private:

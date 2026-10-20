@@ -192,6 +192,24 @@ Secret Directory::read(const char* name, private_file::Policy policy, std::size_
 	return read_whole(fd, cap, shown);
 }
 
+#ifdef PKI_TEST_HOOKS
+namespace testing {
+// Runs before each sync create issues; a nonzero return (errno set) is that sync's failure.
+int (*sync_hook)(int fd) = nullptr;
+}  // namespace testing
+#endif
+
+namespace {
+
+int sync_fd(int fd) {
+#ifdef PKI_TEST_HOOKS
+	if (testing::sync_hook != nullptr && testing::sync_hook(fd) != 0) { return -1; }
+#endif
+	return io::full_fsync(fd);
+}
+
+}  // namespace
+
 void Directory::create(const char* name, std::span<const unsigned char> bytes, mode_t mode) const {
 	std::string shown = path_ + "/" + name;
 	int fd = io::RetryAfterSignal(::openat, fd_, name, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
@@ -210,8 +228,14 @@ void Directory::create(const char* name, std::span<const unsigned char> bytes, m
 	};
 	if (io::RetryAfterSignal(::fchmod, fd, mode) != 0) { fail("set the mode of"); }
 	if (!bytes.empty() && io::write(fd, bytes.data(), bytes.size()) != static_cast<ssize_t>(bytes.size())) { fail("write"); }
-	if (io::full_fsync(fd) != 0) { fail("sync"); }
+	if (sync_fd(fd) != 0) { fail("sync"); }
 	close_fd(fd);
+	// The new entry is durable only once the directory is: a full sync of its descriptor.
+	if (sync_fd(fd_) != 0) {
+		int error = errno;
+		::unlinkat(fd_, name, 0);
+		throw Refusal(Reason::io, "cannot sync the directory of " + shown + ": " + error_text(error));
+	}
 }
 
 void make_directory(const std::string& path) {

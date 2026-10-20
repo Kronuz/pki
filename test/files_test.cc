@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "fixture.h"
 #include "pki/directory.h"
@@ -16,6 +17,10 @@
 using fixture::contains;
 using pki::Reason;
 using private_file::Policy;
+
+namespace pki::testing {
+extern int (*sync_hook)(int fd);
+}
 
 namespace {
 
@@ -252,6 +257,79 @@ void modes_under_umask(const std::string& base) {
 	}
 }
 
+// CL-12: create syncs the file, then the directory holding it, before it returns.
+struct SyncLog {
+	std::vector<std::string> calls;  // "file" or "dir", in order
+	std::vector<ino_t> inodes;
+	std::string present;             // the entry checked at each directory sync
+	int dir_fd = -1;
+	int fail_on = -1;                // the call index that fails with EIO
+	bool entry_visible_at_dir_sync = false;
+};
+SyncLog sync_log;
+
+int record_sync(int fd) {
+	struct stat st{};
+	::fstat(fd, &st);
+	bool dir = S_ISDIR(st.st_mode);
+	if (dir) {
+		struct stat entry{};
+		sync_log.entry_visible_at_dir_sync = ::fstatat(fd, sync_log.present.c_str(), &entry, AT_SYMLINK_NOFOLLOW) == 0;
+	}
+	sync_log.calls.push_back(dir ? "dir" : "file");
+	sync_log.inodes.push_back(st.st_ino);
+	if (static_cast<int>(sync_log.calls.size()) - 1 == sync_log.fail_on) {
+		errno = EIO;
+		return -1;
+	}
+	return 0;
+}
+
+void sync_sequence(const std::string& base) {
+	std::string dir = base + "/sync-sequence";
+	pki::make_directory(dir);
+	auto authority = pki::Directory::open(dir);
+	struct stat dir_stat{};
+	CHECK(::fstat(authority.fd(), &dir_stat) == 0);
+	const unsigned char bytes[] = "key";
+	pki::testing::sync_hook = record_sync;
+
+	sync_log = {};
+	sync_log.present = "ok.pem";
+	CHECK_ACCEPTED(authority.create("ok.pem", bytes, 0600));
+	CHECK(sync_log.calls.size() == 2);
+	if (sync_log.calls.size() == 2) {
+		CHECK(sync_log.calls[0] == "file");
+		CHECK(sync_log.calls[1] == "dir");
+		CHECK(sync_log.inodes[1] == dir_stat.st_ino);
+		CHECK(sync_log.inodes[0] != dir_stat.st_ino);
+	}
+	CHECK(sync_log.entry_visible_at_dir_sync);
+
+	// A failed directory sync refuses, and leaves no key behind to block a retry.
+	sync_log = {};
+	sync_log.present = "dirfail.pem";
+	sync_log.fail_on = 1;
+	CHECK(contains(CHECK_REFUSED(Reason::io, authority.create("dirfail.pem", bytes, 0600)), "sync the directory"));
+	CHECK(sync_log.calls.size() == 2);
+	CHECK(::faccessat(authority.fd(), "dirfail.pem", F_OK, AT_SYMLINK_NOFOLLOW) != 0);
+
+	// A failed file sync refuses before the directory is touched.
+	sync_log = {};
+	sync_log.present = "filefail.pem";
+	sync_log.fail_on = 0;
+	CHECK(contains(CHECK_REFUSED(Reason::io, authority.create("filefail.pem", bytes, 0600)), "sync"));
+	CHECK(sync_log.calls.size() == 1);
+	CHECK(::faccessat(authority.fd(), "filefail.pem", F_OK, AT_SYMLINK_NOFOLLOW) != 0);
+
+	// A refused create (the file exists) syncs nothing.
+	sync_log = {};
+	CHECK_REFUSED(Reason::file_exists, authority.create("ok.pem", bytes, 0600));
+	CHECK(sync_log.calls.empty());
+
+	pki::testing::sync_hook = nullptr;
+}
+
 void secret_buffer() {
 	pki::Secret s(8);
 	s.append("abcdefgh", 8);
@@ -301,6 +379,7 @@ int main() {
 	passphrase_files(base);
 	passphrase_strength();
 	modes_under_umask(base);
+	sync_sequence(base);
 	secret_buffer();
 	owner_cases(base);
 	return fixture::finish("pki_files");

@@ -49,8 +49,9 @@ and FreeBSD, with FAT and exFAT refused; on Linux an allowlist (ext2/3/4, xfs, b
 f2fs), and a refusal that names any other type, tmpfs and FUSE included. Every file
 inside is reached through `openat` on that descriptor. `create` writes a file with
 `O_CREAT | O_EXCL | O_NOFOLLOW`, sets its mode with `fchmod` whatever the umask, and
-syncs it with `io::full_fsync` (`F_FULLFSYNC` on macOS), so a planted name or symlink is
-never followed and nothing is written over.
+syncs it with `io::full_fsync` (`F_FULLFSYNC` on macOS), then syncs the directory the same
+way so the new entry survives a power loss; a failed sync refuses and removes the file. A
+planted name or symlink is never followed and nothing is written over.
 
 `check_outside_xapiand_root` refuses a path at or under a directory holding
 `.xapiand/node`, so no node's backup carries an authority. `Directory::contains` compares

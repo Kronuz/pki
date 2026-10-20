@@ -48,7 +48,8 @@ Linux build tree on tmpfs fails `pki_files`.
 - **Check the descriptor, not the path.** `private_file::open` opens, then `fstat`s what it
   opened; never `stat` then `open`.
 - **pki never writes over a file.** Outputs and keys are `O_CREAT | O_EXCL | O_NOFOLLOW`,
-  their mode set with `fchmod` whatever the umask, synced with `io::full_fsync`.
+  their mode set with `fchmod` whatever the umask, synced with `io::full_fsync`, then the directory
+  likewise, before `create` returns.
 - **CA keys and passphrase files are 0600-only** (`Policy::secret`); 0640 with the
   caller's own group is for node keys alone (`Policy::key`).
 - **The SPKI digest is over `i2d_X509_PUBKEY`'s DER.** Never `X509_pubkey_digest`.
