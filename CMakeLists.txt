@@ -33,7 +33,7 @@ endif()
 
 # char-classify: chars::tolower, the table Xapiand's node names lowercase through.
 if(NOT TARGET char_classify::char_classify)
-	FetchContent_Declare(char_classify GIT_REPOSITORY https://github.com/Kronuz/char-classify.git GIT_TAG 306ecd96d55d47d9bd3167eaeb7877e40d0631ac)
+	FetchContent_Declare(char_classify GIT_REPOSITORY https://github.com/Kronuz/char-classify.git GIT_TAG a8904965dc904690ddd6875ab7acbfd271d97832)
 	FetchContent_MakeAvailable(char_classify)
 endif()
 
