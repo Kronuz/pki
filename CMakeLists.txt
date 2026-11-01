@@ -27,13 +27,13 @@ message(STATUS "pki: OpenSSL ${OPENSSL_VERSION} at ${OPENSSL_INCLUDE_DIR}")
 # io's headers and no second copy of its symbols.
 option(PKI_LINK_IO "Link io::io (OFF when the consumer compiles io.cc itself)" ON)
 if(NOT TARGET io::io)
-	FetchContent_Declare(io GIT_REPOSITORY https://github.com/Kronuz/io.git GIT_TAG 1336f85d00616187c633d372548aab3e4b843426)
+	FetchContent_Declare(io GIT_REPOSITORY https://github.com/Kronuz/io.git GIT_TAG 93ddcaf3953e9e2abd0ea0615313fa1accb57c16)
 	FetchContent_MakeAvailable(io)
 endif()
 
 # char-classify: chars::tolower, the table Xapiand's node names lowercase through.
 if(NOT TARGET char_classify::char_classify)
-	FetchContent_Declare(char_classify GIT_REPOSITORY https://github.com/Kronuz/char-classify.git GIT_TAG a8904965dc904690ddd6875ab7acbfd271d97832)
+	FetchContent_Declare(char_classify GIT_REPOSITORY https://github.com/Kronuz/char-classify.git GIT_TAG 65c1ff5c4052d9108ea7630bc4327be236ec1bd8)
 	FetchContent_MakeAvailable(char_classify)
 endif()
 
