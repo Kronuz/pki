@@ -26,18 +26,35 @@ test/*_test.cc               files, key, fingerprint, expiry, identity, command
 cmake/no_test_hooks.cmake    Fails if the release driver names a test hook
 ```
 
-## Build and test
+## Verification and benchmarks
+
+CI (`.github/workflows/ci.yml`) calls the catalog's shared
+[`cmake.yml`](https://github.com/Kronuz/cpp-libraries/blob/main/.github/workflows/cmake.yml) on every push and nightly:
+CTest on Linux (x86-64 GCC and Clang, arm64) against OpenSSL 3.0, macOS (arm64, x86-64) against
+Homebrew's OpenSSL 3, and FreeBSD against its base OpenSSL, then again under ASan+UBSan and
+TSan. Two jobs of its own add `macos-arm64-openssl4` (Homebrew's `openssl@4`) and
+`owner-cases`, which runs `pki_files_test` as root on Ubuntu and macOS. The shared method is the
+catalog's [PERFORMANCE.md](https://github.com/Kronuz/cpp-libraries/blob/main/docs/PERFORMANCE.md).
 
 ```sh
-cmake -B build -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"   # the prefix only on macOS
+cmake -S . -B build -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"   # the prefix only on macOS
 cmake --build build && ctest --test-dir build --output-on-failure
-sudo build/pki_files_test                                         # the owner cases, as root
+sudo build/pki_files_test                                             # the owner cases, as root
+# ASan+UBSan as CI's linux-asan-ubsan job runs it (Linux, Clang)
+CC=clang CXX=clang++ cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug \
+  "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS" \
+  "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+cmake --build build-asan && ASAN_OPTIONS=detect_leaks=1 ctest --test-dir build-asan --output-on-failure
 ```
 
-Under a host hold (`quiet check`), build at `nice -n 19` with at most 4 jobs, or not at
-all under a strict one; CI validates every push. The tests make their scratch directories
-under the build tree (`pki-test-*`), which must be on a local filesystem pki accepts: a
-Linux build tree on tmpfs fails `pki_files`.
+The tests make their scratch directories under the build tree (`pki-test-*`), which must be on a
+local filesystem pki accepts: a Linux build tree on tmpfs fails `pki_files`. The independent
+reader is the `openssl` command beside the linked library (CMake finds it; macOS's
+`/usr/bin/openssl` is LibreSSL): `openssl pkcs8` and `pkey` decrypt the keys pki writes and
+derive their public keys, `x509 | pkey | dgst -sha256` gives the SPKI and DER digests compared
+with pki's fingerprints, and `verify -attime` judges the expiry cases.
+`pki_release_has_no_test_hooks` fails if the release driver `kronuz-pki` carries a `PKI_TEST_`
+name. There is no bench, fuzz target or mutation script: pki makes no performance claim.
 
 ## Invariants
 
