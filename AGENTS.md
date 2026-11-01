@@ -20,6 +20,7 @@ include/pki/pem.h            Public PEM files: certificates, requests, public ke
 include/pki/openssl.h        unique_ptr handles for OpenSSL objects
 src/*.cc                     One per header above (command.cc for pki.h)
 examples/kronuz_pki.cc       kronuz-pki: the driver and example
+docs/ROADMAP.md              The remaining steps of the design
 test/fixture.{h,cc}          CHECK macros, scratch directories, fixture CAs and leaves, the openssl CLI
 test/*_test.cc               files, key, fingerprint, expiry, identity, command
 cmake/no_test_hooks.cmake    Fails if the release driver names a test hook
