@@ -4,14 +4,16 @@ on:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: '23 7 * * *'  # nightly: drift in OpenSSL and in libraries tracked at main
+    inputs:
+      nightly: { type: boolean, default: false }
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   ci:
     uses: Kronuz/cpp-libraries/.github/workflows/cmake.yml@main
+    with:
+      nightly: ${{ inputs.nightly || false }}
 
   # T9: macOS against Homebrew's openssl@4 as well as openssl@3.
   openssl4:
